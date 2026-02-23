@@ -263,6 +263,15 @@ textarea#promptOutput {
 .font-preview-container {
     transition: all 0.3s ease;
 }
+.fixed-item {
+    background-color: #e0e0e0 !important;
+    cursor: default !important;
+    opacity: 0.8;
+}
+
+.sortable-list li.fixed-item:hover {
+    background-color: #e0e0e0 !important;
+}
 
 .preview-header, .preview-body {
     transition: font-family 0.2s ease;
