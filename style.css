@@ -112,10 +112,6 @@ textarea {
     margin: 0;
 }
 
-.multi-select {
-    height: 100px;
-}
-
 /* Сортируемый список */
 .sortable-list {
     list-style: none;
@@ -255,4 +251,12 @@ textarea#promptOutput {
 
 #resetBtn:hover {
     background-color: #c0392b;
+}
+
+#generateFontPair {
+    background-color: #9b59b6;
+}
+
+#generateFontPair:hover {
+    background-color: #8e44ad;
 }

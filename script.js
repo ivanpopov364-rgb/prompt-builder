@@ -1,4 +1,4 @@
-// Константы с фиксированными требованиями (всегда добавляются в промпт)
+// Константы с фиксированными требованиями
 const MOBILE_REQUIREMENTS = `МОБИЛЬНАЯ ВЕРСИЯ
 Меню: бургер
 Порядок блоков: как на десктопе
@@ -17,6 +17,57 @@ const footer_requirements = `Footer/подвал:
 
 const STORAGE_KEY = 'lovablePromptBuilder';
 
+// --- База популярных шрифтов Google Fonts с категориями ---
+const fontDatabase = [
+    // С засечками (serif)
+    { name: 'Merriweather', category: 'serif', style: 'text' },
+    { name: 'Playfair Display', category: 'serif', style: 'display' },
+    { name: 'PT Serif', category: 'serif', style: 'text' },
+    { name: 'Lora', category: 'serif', style: 'text' },
+    { name: 'Cormorant Garamond', category: 'serif', style: 'display' },
+    { name: 'Roboto Slab', category: 'serif', style: 'text' },
+    // Без засечек (sans-serif)
+    { name: 'Roboto', category: 'sans-serif', style: 'text' },
+    { name: 'Open Sans', category: 'sans-serif', style: 'text' },
+    { name: 'Montserrat', category: 'sans-serif', style: 'display' },
+    { name: 'Lato', category: 'sans-serif', style: 'text' },
+    { name: 'Poppins', category: 'sans-serif', style: 'display' },
+    { name: 'Oswald', category: 'sans-serif', style: 'display' },
+    { name: 'Raleway', category: 'sans-serif', style: 'display' },
+    { name: 'Inter', category: 'sans-serif', style: 'text' },
+    { name: 'Source Sans Pro', category: 'sans-serif', style: 'text' },
+    // Акцидентные (display) и рукописные
+    { name: 'Lobster', category: 'display', style: 'display' },
+    { name: 'Abril Fatface', category: 'display', style: 'display' },
+    { name: 'Bebas Neue', category: 'display', style: 'display' },
+    { name: 'Pacifico', category: 'handwriting', style: 'display' },
+    { name: 'Dancing Script', category: 'handwriting', style: 'display' },
+    { name: 'Comfortaa', category: 'display', style: 'display' }
+];
+
+// --- Функция генерации случайной пары шрифтов ---
+function generateRandomFontPair() {
+    // Для заголовков берём шрифты с style 'display' или любые
+    let headerCandidates = fontDatabase.filter(f => f.style === 'display' || f.category === 'display');
+    if (headerCandidates.length === 0) headerCandidates = fontDatabase;
+    
+    // Для текста берём шрифты с style 'text' или serif/sans-serif
+    let bodyCandidates = fontDatabase.filter(f => f.style === 'text');
+    if (bodyCandidates.length === 0) bodyCandidates = fontDatabase;
+
+    let header = headerCandidates[Math.floor(Math.random() * headerCandidates.length)];
+    let body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
+    
+    // Избегаем одинаковых
+    let attempts = 0;
+    while (header.name === body.name && attempts < 10) {
+        body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
+        attempts++;
+    }
+    
+    return { header: header.name, body: body.name };
+}
+
 // --- Элементы формы ---
 const form = document.getElementById('promptForm');
 const generateBtn = document.getElementById('generateBtn');
@@ -29,6 +80,7 @@ const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 
 // --- Контекст и цели ---
+const siteTypeRadios = document.querySelectorAll('input[name="siteType"]');
 const projectName = document.getElementById('projectName');
 const targetAudience = document.getElementById('targetAudience');
 const siteGoals = document.querySelectorAll('input[name="siteGoals"]');
@@ -40,47 +92,39 @@ const styleInput = document.getElementById('style');
 const stylePreset = document.getElementById('stylePreset');
 const references = document.getElementById('references');
 
-// Цвета
+// Цвета (три)
 const colorPrimary = document.getElementById('colorPrimary');
 const colorPrimaryHex = document.getElementById('colorPrimaryHex');
 const colorPrimaryIgnore = document.getElementById('colorPrimaryIgnore');
 const colorSecondary = document.getElementById('colorSecondary');
 const colorSecondaryHex = document.getElementById('colorSecondaryHex');
 const colorSecondaryIgnore = document.getElementById('colorSecondaryIgnore');
-const colorBgPrimary = document.getElementById('colorBgPrimary');
-const colorBgPrimaryHex = document.getElementById('colorBgPrimaryHex');
-const colorBgSecondary = document.getElementById('colorBgSecondary');
-const colorBgSecondaryHex = document.getElementById('colorBgSecondaryHex');
-const colorTextHeaders = document.getElementById('colorTextHeaders');
-const colorTextHeadersHex = document.getElementById('colorTextHeadersHex');
-const colorTextBody = document.getElementById('colorTextBody');
-const colorTextBodyHex = document.getElementById('colorTextBodyHex');
-const gradients = document.getElementById('gradients');
+const colorAccent = document.getElementById('colorAccent');
+const colorAccentHex = document.getElementById('colorAccentHex');
+const colorAccentIgnore = document.getElementById('colorAccentIgnore');
+
+// Типографика
 const headerFont = document.getElementById('headerFont');
 const bodyFont = document.getElementById('bodyFont');
+const generateFontBtn = document.getElementById('generateFontPair');
 
 // --- Структура ---
 const blocksCheckboxes = document.querySelectorAll('input[name="blocks"]');
 const blocksSortable = document.getElementById('blocks-sortable');
 let sortableInstance = null;
+let selectedBlocks = [];
 
 // --- Анимации ---
 const hoverButtons = document.querySelectorAll('input[name="hoverButtons"]');
 const hoverCards = document.querySelectorAll('input[name="hoverCards"]');
 const hoverImages = document.querySelectorAll('input[name="hoverImages"]');
-const hoverButtonsSections = document.getElementById('hoverButtonsSections');
-const hoverCardsSections = document.getElementById('hoverCardsSections');
-const hoverImagesSections = document.getElementById('hoverImagesSections');
+const snapScrollingCheckbox = document.getElementById('snapScrolling');
 
 // --- Дополнительно ---
 const servicesTextarea = document.getElementById('services');
 const companyDescTextarea = document.getElementById('companyDesc');
 const hasLogoCheckbox = document.getElementById('hasLogo');
-const snapScrollingCheckbox = document.getElementById('snapScrolling');
 const extraWishes = document.getElementById('extraWishes');
-
-// --- Вспомогательные переменные ---
-let selectedBlocks = []; // массив выбранных блоков в текущем порядке
 
 // --- Переключение вкладок ---
 tabButtons.forEach(button => {
@@ -127,46 +171,13 @@ function setupColorSync() {
         saveFormState();
     });
 
-    colorBgPrimary.addEventListener('input', () => {
-        colorBgPrimaryHex.value = colorBgPrimary.value;
+    colorAccent.addEventListener('input', () => {
+        colorAccentHex.value = colorAccent.value;
         saveFormState();
     });
-    colorBgPrimaryHex.addEventListener('input', () => {
-        if (/^#[0-9A-F]{6}$/i.test(colorBgPrimaryHex.value)) {
-            colorBgPrimary.value = colorBgPrimaryHex.value;
-        }
-        saveFormState();
-    });
-
-    colorBgSecondary.addEventListener('input', () => {
-        colorBgSecondaryHex.value = colorBgSecondary.value;
-        saveFormState();
-    });
-    colorBgSecondaryHex.addEventListener('input', () => {
-        if (/^#[0-9A-F]{6}$/i.test(colorBgSecondaryHex.value)) {
-            colorBgSecondary.value = colorBgSecondaryHex.value;
-        }
-        saveFormState();
-    });
-
-    colorTextHeaders.addEventListener('input', () => {
-        colorTextHeadersHex.value = colorTextHeaders.value;
-        saveFormState();
-    });
-    colorTextHeadersHex.addEventListener('input', () => {
-        if (/^#[0-9A-F]{6}$/i.test(colorTextHeadersHex.value)) {
-            colorTextHeaders.value = colorTextHeadersHex.value;
-        }
-        saveFormState();
-    });
-
-    colorTextBody.addEventListener('input', () => {
-        colorTextBodyHex.value = colorTextBody.value;
-        saveFormState();
-    });
-    colorTextBodyHex.addEventListener('input', () => {
-        if (/^#[0-9A-F]{6}$/i.test(colorTextBodyHex.value)) {
-            colorTextBody.value = colorTextBodyHex.value;
+    colorAccentHex.addEventListener('input', () => {
+        if (/^#[0-9A-F]{6}$/i.test(colorAccentHex.value)) {
+            colorAccent.value = colorAccentHex.value;
         }
         saveFormState();
     });
@@ -197,6 +208,14 @@ function setupStyleSync() {
     });
 }
 
+// --- Генератор шрифтов ---
+generateFontBtn.addEventListener('click', () => {
+    const pair = generateRandomFontPair();
+    headerFont.value = pair.header;
+    bodyFont.value = pair.body;
+    saveFormState();
+});
+
 // --- Обновление сортируемого списка блоков на основе чекбоксов ---
 function updateBlocksList() {
     const checked = [];
@@ -204,21 +223,16 @@ function updateBlocksList() {
         if (cb.checked) checked.push(cb.value);
     });
     
-    // Сохраняем текущий порядок, но добавляем новые блоки в конец
     const existingItems = Array.from(blocksSortable.children).map(li => li.textContent);
-    // Удаляем те, что больше не выбраны
     const newOrder = selectedBlocks.filter(block => checked.includes(block));
-    // Добавляем новые блоки (которых ещё нет в порядке)
     checked.forEach(block => {
         if (!newOrder.includes(block)) newOrder.push(block);
     });
     
     selectedBlocks = newOrder;
     renderSortableList();
-    updateHoverSectionsOptions();
 }
 
-// Отрисовка списка для сортировки
 function renderSortableList() {
     blocksSortable.innerHTML = '';
     selectedBlocks.forEach(block => {
@@ -228,47 +242,24 @@ function renderSortableList() {
     });
 }
 
-// Инициализация Sortable
 function initSortable() {
     if (sortableInstance) sortableInstance.destroy();
     sortableInstance = new Sortable(blocksSortable, {
         animation: 150,
         ghostClass: 'sortable-ghost',
         onEnd: function() {
-            // Обновить порядок
             selectedBlocks = Array.from(blocksSortable.children).map(li => li.textContent);
             saveFormState();
-            updateHoverSectionsOptions();
         }
     });
 }
 
-// Обновление списков секций в ховер-эффектах
-function updateHoverSectionsOptions() {
-    const sections = selectedBlocks;
-    
-    function populateSelect(select) {
-        select.innerHTML = '';
-        sections.forEach(section => {
-            const option = document.createElement('option');
-            option.value = section;
-            option.textContent = section;
-            select.appendChild(option);
-        });
-    }
-    
-    populateSelect(hoverButtonsSections);
-    populateSelect(hoverCardsSections);
-    populateSelect(hoverImagesSections);
-}
-
 // --- Сохранение состояния в localStorage ---
 function saveFormState() {
-    // Цели сайта
+    const siteType = document.querySelector('input[name="siteType"]:checked')?.value || 'Лендинг';
     const goals = [];
     siteGoals.forEach(cb => { if (cb.checked) goals.push(cb.value); });
 
-    // Ховер-эффекты
     const hoverButtonsSelected = [];
     hoverButtons.forEach(cb => { if (cb.checked) hoverButtonsSelected.push(cb.value); });
     const hoverCardsSelected = [];
@@ -277,6 +268,7 @@ function saveFormState() {
     hoverImages.forEach(cb => { if (cb.checked) hoverImagesSelected.push(cb.value); });
 
     const formData = {
+        siteType: siteType,
         projectName: projectName.value,
         targetAudience: targetAudience.value,
         siteGoals: goals,
@@ -289,24 +281,18 @@ function saveFormState() {
         colorPrimaryIgnore: colorPrimaryIgnore.checked,
         colorSecondary: colorSecondary.value,
         colorSecondaryIgnore: colorSecondaryIgnore.checked,
-        colorBgPrimary: colorBgPrimary.value,
-        colorBgSecondary: colorBgSecondary.value,
-        colorTextHeaders: colorTextHeaders.value,
-        colorTextBody: colorTextBody.value,
-        gradients: gradients.value,
+        colorAccent: colorAccent.value,
+        colorAccentIgnore: colorAccentIgnore.checked,
         headerFont: headerFont.value,
         bodyFont: bodyFont.value,
         selectedBlocks: selectedBlocks,
         hoverButtons: hoverButtonsSelected,
         hoverCards: hoverCardsSelected,
         hoverImages: hoverImagesSelected,
-        hoverButtonsSections: Array.from(hoverButtonsSections.selectedOptions).map(o => o.value),
-        hoverCardsSections: Array.from(hoverCardsSections.selectedOptions).map(o => o.value),
-        hoverImagesSections: Array.from(hoverImagesSections.selectedOptions).map(o => o.value),
+        snapScrolling: snapScrollingCheckbox.checked,
         services: servicesTextarea.value,
         companyDesc: companyDescTextarea.value,
         hasLogo: hasLogoCheckbox.checked,
-        snapScrolling: snapScrollingCheckbox.checked,
         extraWishes: extraWishes.value
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
@@ -320,10 +306,15 @@ function loadFormState() {
     try {
         const formData = JSON.parse(saved);
 
+        // Тип сайта
+        if (formData.siteType) {
+            const radio = document.querySelector(`input[name="siteType"][value="${formData.siteType}"]`);
+            if (radio) radio.checked = true;
+        }
+
         projectName.value = formData.projectName || '';
         targetAudience.value = formData.targetAudience || '';
 
-        // Цели сайта
         siteGoals.forEach(cb => {
             cb.checked = formData.siteGoals?.includes(cb.value) || false;
         });
@@ -337,7 +328,6 @@ function loadFormState() {
         if (stylePreset && formData.stylePreset) stylePreset.value = formData.stylePreset;
         references.value = formData.references || '';
 
-        // Цвета
         if (formData.colorPrimary) {
             colorPrimary.value = formData.colorPrimary;
             colorPrimaryHex.value = formData.colorPrimary;
@@ -350,31 +340,17 @@ function loadFormState() {
         }
         colorSecondaryIgnore.checked = formData.colorSecondaryIgnore || false;
 
-        if (formData.colorBgPrimary) {
-            colorBgPrimary.value = formData.colorBgPrimary;
-            colorBgPrimaryHex.value = formData.colorBgPrimary;
+        if (formData.colorAccent) {
+            colorAccent.value = formData.colorAccent;
+            colorAccentHex.value = formData.colorAccent;
         }
-        if (formData.colorBgSecondary) {
-            colorBgSecondary.value = formData.colorBgSecondary;
-            colorBgSecondaryHex.value = formData.colorBgSecondary;
-        }
-        if (formData.colorTextHeaders) {
-            colorTextHeaders.value = formData.colorTextHeaders;
-            colorTextHeadersHex.value = formData.colorTextHeaders;
-        }
-        if (formData.colorTextBody) {
-            colorTextBody.value = formData.colorTextBody;
-            colorTextBodyHex.value = formData.colorTextBody;
-        }
+        colorAccentIgnore.checked = formData.colorAccentIgnore || false;
 
-        gradients.value = formData.gradients || '';
         headerFont.value = formData.headerFont || '';
         bodyFont.value = formData.bodyFont || '';
 
-        // Блоки
         if (Array.isArray(formData.selectedBlocks)) {
             selectedBlocks = formData.selectedBlocks;
-            // Отметить чекбоксы
             blocksCheckboxes.forEach(cb => {
                 cb.checked = selectedBlocks.includes(cb.value);
             });
@@ -383,47 +359,21 @@ function loadFormState() {
         }
         renderSortableList();
 
-        // Ховер-эффекты
-        if (Array.isArray(formData.hoverButtons)) {
-            hoverButtons.forEach(cb => {
-                cb.checked = formData.hoverButtons.includes(cb.value);
-            });
-        }
-        if (Array.isArray(formData.hoverCards)) {
-            hoverCards.forEach(cb => {
-                cb.checked = formData.hoverCards.includes(cb.value);
-            });
-        }
-        if (Array.isArray(formData.hoverImages)) {
-            hoverImages.forEach(cb => {
-                cb.checked = formData.hoverImages.includes(cb.value);
-            });
-        }
+        hoverButtons.forEach(cb => {
+            cb.checked = formData.hoverButtons?.includes(cb.value) || false;
+        });
+        hoverCards.forEach(cb => {
+            cb.checked = formData.hoverCards?.includes(cb.value) || false;
+        });
+        hoverImages.forEach(cb => {
+            cb.checked = formData.hoverImages?.includes(cb.value) || false;
+        });
 
-        // Привязка к секциям
-        if (Array.isArray(formData.hoverButtonsSections)) {
-            Array.from(hoverButtonsSections.options).forEach(o => {
-                o.selected = formData.hoverButtonsSections.includes(o.value);
-            });
-        }
-        if (Array.isArray(formData.hoverCardsSections)) {
-            Array.from(hoverCardsSections.options).forEach(o => {
-                o.selected = formData.hoverCardsSections.includes(o.value);
-            });
-        }
-        if (Array.isArray(formData.hoverImagesSections)) {
-            Array.from(hoverImagesSections.options).forEach(o => {
-                o.selected = formData.hoverImagesSections.includes(o.value);
-            });
-        }
-
+        snapScrollingCheckbox.checked = formData.snapScrolling || false;
         servicesTextarea.value = formData.services || '';
         companyDescTextarea.value = formData.companyDesc || '';
         hasLogoCheckbox.checked = formData.hasLogo || false;
-        snapScrollingCheckbox.checked = formData.snapScrolling || false;
         extraWishes.value = formData.extraWishes || '';
-
-        updateHoverSectionsOptions();
 
     } catch (e) {
         console.error('Ошибка загрузки из localStorage', e);
@@ -432,18 +382,18 @@ function loadFormState() {
 
 // --- Генерация промпта ---
 function generatePrompt() {
-    // Проверка обязательного поля
     if (!projectName.value.trim()) {
         alert('Пожалуйста, введите название проекта.');
         projectName.focus();
         return;
     }
 
+    const siteType = document.querySelector('input[name="siteType"]:checked')?.value || 'Лендинг';
     let prompt = `# ПРОЕКТ: ${projectName.value.trim()}\n\n`;
 
     // 1. КОНТЕКСТ И ЦЕЛИ
     prompt += `## 1. КОНТЕКСТ И ЦЕЛИ\n`;
-    prompt += `Тип сайта: ${document.querySelector('input[name="siteType"]:checked')?.value || 'Лендинг'}\n`;
+    prompt += `Тип сайта: ${siteType}\n`;
     if (targetAudience.value.trim()) prompt += `Целевая аудитория: ${targetAudience.value.trim()}\n`;
     
     const goals = [];
@@ -463,13 +413,9 @@ function generatePrompt() {
 
     // 3. ЦВЕТОВАЯ ПАЛИТРА
     prompt += `## 3. ЦВЕТОВАЯ ПАЛИТРА\n`;
-    if (!colorPrimaryIgnore.checked) prompt += `Акцентный цвет 1: ${colorPrimary.value}\n`;
-    if (!colorSecondaryIgnore.checked && colorSecondary.value !== '#2ecc71') prompt += `Акцентный цвет 2: ${colorSecondary.value}\n`;
-    prompt += `Основной фон: ${colorBgPrimary.value}\n`;
-    if (colorBgSecondary.value !== '#f4f7f6') prompt += `Вторичный фон: ${colorBgSecondary.value}\n`;
-    prompt += `Цвет заголовков: ${colorTextHeaders.value}\n`;
-    prompt += `Цвет основного текста: ${colorTextBody.value}\n`;
-    if (gradients.value.trim()) prompt += `Градиенты/текстуры: ${gradients.value.trim()}\n`;
+    if (!colorPrimaryIgnore.checked) prompt += `Основной цвет: ${colorPrimary.value}\n`;
+    if (!colorSecondaryIgnore.checked) prompt += `Второстепенный цвет: ${colorSecondary.value}\n`;
+    if (!colorAccentIgnore.checked) prompt += `Акцентный цвет: ${colorAccent.value}\n`;
     prompt += '\n';
 
     // 4. ТИПОГРАФИКА
@@ -492,32 +438,22 @@ function generatePrompt() {
     // 6. ИНТЕРАКТИВНОСТЬ И АНИМАЦИИ
     prompt += `## 6. ИНТЕРАКТИВНОСТЬ И АНИМАЦИИ\n`;
 
-    // Ховер-эффекты для кнопок
     const hoverButtonsSelected = [];
     hoverButtons.forEach(cb => { if (cb.checked) hoverButtonsSelected.push(cb.value); });
     if (hoverButtonsSelected.length > 0) {
-        const sections = Array.from(hoverButtonsSections.selectedOptions).map(o => o.value);
-        prompt += `Ховер-эффекты для кнопок: ${hoverButtonsSelected.join(', ')}`;
-        if (sections.length > 0) prompt += ` (применяется к секциям: ${sections.join(', ')})`;
-        prompt += '\n';
+        prompt += `Ховер-эффекты для кнопок: ${hoverButtonsSelected.join(', ')}\n`;
     }
 
     const hoverCardsSelected = [];
     hoverCards.forEach(cb => { if (cb.checked) hoverCardsSelected.push(cb.value); });
     if (hoverCardsSelected.length > 0) {
-        const sections = Array.from(hoverCardsSections.selectedOptions).map(o => o.value);
-        prompt += `Ховер-эффекты для карточек: ${hoverCardsSelected.join(', ')}`;
-        if (sections.length > 0) prompt += ` (применяется к секциям: ${sections.join(', ')})`;
-        prompt += '\n';
+        prompt += `Ховер-эффекты для карточек: ${hoverCardsSelected.join(', ')}\n`;
     }
 
     const hoverImagesSelected = [];
     hoverImages.forEach(cb => { if (cb.checked) hoverImagesSelected.push(cb.value); });
     if (hoverImagesSelected.length > 0) {
-        const sections = Array.from(hoverImagesSections.selectedOptions).map(o => o.value);
-        prompt += `Ховер-эффекты для изображений: ${hoverImagesSelected.join(', ')}`;
-        if (sections.length > 0) prompt += ` (применяется к секциям: ${sections.join(', ')})`;
-        prompt += '\n';
+        prompt += `Ховер-эффекты для изображений: ${hoverImagesSelected.join(', ')}\n`;
     }
 
     if (snapScrollingCheckbox.checked) prompt += `Особенности верстки: snap scrolling\n`;
@@ -551,7 +487,7 @@ function generatePrompt() {
     resultDiv.style.display = 'block';
 }
 
-// --- Копирование в буфер ---
+// --- Копирование ---
 function copyToClipboard() {
     promptOutput.select();
     promptOutput.setSelectionRange(0, 99999);
@@ -578,11 +514,9 @@ function addResetButton() {
 function resetForm() {
     if (confirm('Вы уверены? Все введённые данные будут удалены.')) {
         form.reset();
-        // Дополнительные сбросы
         toneOther.style.display = 'none';
         selectedBlocks = [];
         renderSortableList();
-        updateHoverSectionsOptions();
         localStorage.removeItem(STORAGE_KEY);
         resultDiv.style.display = 'none';
         saveFormState();
@@ -595,9 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSortable();
     setupColorSync();
     setupStyleSync();
-    updateHoverSectionsOptions();
 
-    // События для блоков
     blocksCheckboxes.forEach(cb => {
         cb.addEventListener('change', () => {
             updateBlocksList();
@@ -605,15 +537,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // События для ховер-эффектов (сохранение)
-    hoverButtons.forEach(cb => cb.addEventListener('change', saveFormState));
-    hoverCards.forEach(cb => cb.addEventListener('change', saveFormState));
-    hoverImages.forEach(cb => cb.addEventListener('change', saveFormState));
-    hoverButtonsSections.addEventListener('change', saveFormState);
-    hoverCardsSections.addEventListener('change', saveFormState);
-    hoverImagesSections.addEventListener('change', saveFormState);
-
-    // Сохраняем при любых изменениях в полях
+    // Сохранение при изменениях
+    [hoverButtons, hoverCards, hoverImages].forEach(group => {
+        group.forEach(cb => cb.addEventListener('change', saveFormState));
+    });
+    snapScrollingCheckbox.addEventListener('change', saveFormState);
+    
     form.addEventListener('input', saveFormState);
     form.addEventListener('change', saveFormState);
 

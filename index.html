@@ -27,6 +27,13 @@
                 <fieldset>
                     <legend>Контекст и цели</legend>
 
+                    <!-- Тип сайта (радио) -->
+                    <div class="form-group">
+                        <label>Тип сайта:</label>
+                        <label><input type="radio" name="siteType" value="Лендинг" checked> Лендинг (одностраничный)</label>
+                        <label><input type="radio" name="siteType" value="Многостраничный"> Многостраничный сайт</label>
+                    </div>
+
                     <div class="form-group">
                         <label for="projectName">Название проекта/бизнеса <span class="required">*</span>:</label>
                         <input type="text" id="projectName" name="projectName" placeholder="Например: Студия MegaGroup" required>
@@ -94,13 +101,13 @@
                     <input type="url" id="references" name="references" placeholder="https://... (если несколько, разделите запятой)">
                 </div>
 
-                <!-- ДИЗАЙН СИСТЕМА с чекбоксами "Не учитывать" -->
+                <!-- ДИЗАЙН СИСТЕМА (три цвета) -->
                 <fieldset>
                     <legend>🎨 Дизайн система</legend>
                     <div class="color-row">
-                        <!-- Основной цвет (акцентный 1) -->
+                        <!-- Основной цвет -->
                         <div class="color-item">
-                            <label for="colorPrimary">Акцентный цвет 1:</label>
+                            <label for="colorPrimary">Основной цвет:</label>
                             <div style="display: flex; gap: 5px; align-items: center;">
                                 <input type="color" id="colorPrimary" name="colorPrimary" value="#3498db">
                                 <input type="text" id="colorPrimaryHex" placeholder="#3498db" value="#3498db" maxlength="7">
@@ -109,9 +116,9 @@
                                 <input type="checkbox" id="colorPrimaryIgnore" name="colorPrimaryIgnore"> Не учитывать
                             </label>
                         </div>
-                        <!-- Второстепенный цвет (акцентный 2) -->
+                        <!-- Второстепенный цвет -->
                         <div class="color-item">
-                            <label for="colorSecondary">Акцентный цвет 2 (опционально):</label>
+                            <label for="colorSecondary">Второстепенный цвет:</label>
                             <div style="display: flex; gap: 5px; align-items: center;">
                                 <input type="color" id="colorSecondary" name="colorSecondary" value="#2ecc71">
                                 <input type="text" id="colorSecondaryHex" placeholder="#2ecc71" value="#2ecc71" maxlength="7">
@@ -120,46 +127,21 @@
                                 <input type="checkbox" id="colorSecondaryIgnore" name="colorSecondaryIgnore"> Не учитывать
                             </label>
                         </div>
-                        <!-- Основной фон -->
+                        <!-- Акцентный цвет -->
                         <div class="color-item">
-                            <label for="colorBgPrimary">Основной фон:</label>
+                            <label for="colorAccent">Акцентный цвет:</label>
                             <div style="display: flex; gap: 5px; align-items: center;">
-                                <input type="color" id="colorBgPrimary" name="colorBgPrimary" value="#ffffff">
-                                <input type="text" id="colorBgPrimaryHex" placeholder="#ffffff" value="#ffffff" maxlength="7">
+                                <input type="color" id="colorAccent" name="colorAccent" value="#e74c3c">
+                                <input type="text" id="colorAccentHex" placeholder="#e74c3c" value="#e74c3c" maxlength="7">
                             </div>
+                            <label style="font-size: 0.9em; margin-top: 4px;">
+                                <input type="checkbox" id="colorAccentIgnore" name="colorAccentIgnore"> Не учитывать
+                            </label>
                         </div>
-                        <!-- Вторичный фон -->
-                        <div class="color-item">
-                            <label for="colorBgSecondary">Вторичный фон:</label>
-                            <div style="display: flex; gap: 5px; align-items: center;">
-                                <input type="color" id="colorBgSecondary" name="colorBgSecondary" value="#f4f7f6">
-                                <input type="text" id="colorBgSecondaryHex" placeholder="#f4f7f6" value="#f4f7f6" maxlength="7">
-                            </div>
-                        </div>
-                        <!-- Цвет текста заголовков -->
-                        <div class="color-item">
-                            <label for="colorTextHeaders">Цвет заголовков:</label>
-                            <div style="display: flex; gap: 5px; align-items: center;">
-                                <input type="color" id="colorTextHeaders" name="colorTextHeaders" value="#2c3e50">
-                                <input type="text" id="colorTextHeadersHex" placeholder="#2c3e50" value="#2c3e50" maxlength="7">
-                            </div>
-                        </div>
-                        <!-- Цвет основного текста -->
-                        <div class="color-item">
-                            <label for="colorTextBody">Цвет основного текста:</label>
-                            <div style="display: flex; gap: 5px; align-items: center;">
-                                <input type="color" id="colorTextBody" name="colorTextBody" value="#333333">
-                                <input type="text" id="colorTextBodyHex" placeholder="#333333" value="#333333" maxlength="7">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="gradients">Градиенты/текстуры (описание):</label>
-                        <input type="text" id="gradients" name="gradients" placeholder="Например: мягкий градиент от синего к голубому">
                     </div>
                 </fieldset>
 
-                <!-- Типографика (упрощённо, можно расширить позже) -->
+                <!-- Типографика с генератором -->
                 <fieldset>
                     <legend>🔤 Типографика</legend>
                     <div class="form-group">
@@ -169,6 +151,10 @@
                     <div class="form-group">
                         <label for="bodyFont">Шрифт основного текста:</label>
                         <input type="text" id="bodyFont" name="bodyFont" placeholder="Например: Roboto">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" id="generateFontPair" style="background-color: #9b59b6;">🎲 Сгенерировать пару</button>
+                        <span class="note">также пару можно подобрать на <a href="https://fontjoy.com" target="_blank">FontJoy</a> и вписать названия в поля выше</span>
                     </div>
                 </fieldset>
             </div>
@@ -213,10 +199,6 @@
                             <label><input type="checkbox" name="hoverButtons" value="появление обводки"> появление обводки</label>
                             <label><input type="checkbox" name="hoverButtons" value="масштабирование"> масштабирование</label>
                         </div>
-                        <label>Применить к секциям:</label>
-                        <select id="hoverButtonsSections" name="hoverButtonsSections" multiple class="multi-select">
-                            <!-- будут добавлены опции через JS -->
-                        </select>
                     </div>
 
                     <!-- Карточки -->
@@ -227,10 +209,6 @@
                             <label><input type="checkbox" name="hoverCards" value="тень"> тень</label>
                             <label><input type="checkbox" name="hoverCards" value="граница"> граница</label>
                         </div>
-                        <label>Применить к секциям:</label>
-                        <select id="hoverCardsSections" name="hoverCardsSections" multiple class="multi-select">
-                            <!-- будут добавлены опции через JS -->
-                        </select>
                     </div>
 
                     <!-- Изображения -->
@@ -241,11 +219,15 @@
                             <label><input type="checkbox" name="hoverImages" value="затемнение"> затемнение</label>
                             <label><input type="checkbox" name="hoverImages" value="цвет->ч/б"> цвет->ч/б</label>
                         </div>
-                        <label>Применить к секциям:</label>
-                        <select id="hoverImagesSections" name="hoverImagesSections" multiple class="multi-select">
-                            <!-- будут добавлены опции через JS -->
-                        </select>
                     </div>
+                </fieldset>
+
+                <!-- Snap scrolling -->
+                <fieldset>
+                    <legend>⚙️ Тип верстки</legend>
+                    <label>
+                        <input type="checkbox" name="snapScrolling" id="snapScrolling"> Snap scrolling (прокрутка по секциям)
+                    </label>
                 </fieldset>
             </div>
 
@@ -269,14 +251,6 @@
                     <legend>🖼️ Логотип</legend>
                     <label>
                         <input type="checkbox" id="hasLogo" name="hasLogo"> Есть логотип (нужно проанализировать и использовать его дизайн-систему)
-                    </label>
-                </fieldset>
-
-                <!-- Snap scrolling -->
-                <fieldset>
-                    <legend>⚙️ Тип верстки</legend>
-                    <label>
-                        <input type="checkbox" name="snapScrolling" id="snapScrolling"> Snap scrolling (прокрутка по секциям)
                     </label>
                 </fieldset>
 
