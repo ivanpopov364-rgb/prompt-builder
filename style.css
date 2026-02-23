@@ -260,3 +260,10 @@ textarea#promptOutput {
 #generateFontPair:hover {
     background-color: #8e44ad;
 }
+.font-preview-container {
+    transition: all 0.3s ease;
+}
+
+.preview-header, .preview-body {
+    transition: font-family 0.2s ease;
+}
