@@ -51,7 +51,7 @@ function generateRandomFontPair() {
     let headerCandidates = fontDatabase.filter(f => f.style === 'display' || f.category === 'display');
     if (headerCandidates.length === 0) headerCandidates = fontDatabase;
     
-    // Для текста берём шрифты с style 'text' или serif/sans-serif
+    // Для текста берём шрифты с style 'text'
     let bodyCandidates = fontDatabase.filter(f => f.style === 'text');
     if (bodyCandidates.length === 0) bodyCandidates = fontDatabase;
 
@@ -107,6 +107,10 @@ const colorAccentIgnore = document.getElementById('colorAccentIgnore');
 const headerFont = document.getElementById('headerFont');
 const bodyFont = document.getElementById('bodyFont');
 const generateFontBtn = document.getElementById('generateFontPair');
+
+// --- Элементы предпросмотра шрифтов ---
+const previewHeader = document.querySelector('.preview-header');
+const previewBody = document.querySelector('.preview-body');
 
 // --- Структура ---
 const blocksCheckboxes = document.querySelectorAll('input[name="blocks"]');
@@ -208,11 +212,49 @@ function setupStyleSync() {
     });
 }
 
+// --- Функция для загрузки шрифта через Google Fonts ---
+function loadGoogleFont(fontName) {
+    if (!fontName || fontName.trim() === '') return;
+    const family = fontName.trim().replace(/ /g, '+');
+    const existingLink = document.querySelector(`link[href*="${family}"]`);
+    if (!existingLink) {
+        const link = document.createElement('link');
+        link.href = `https://fonts.googleapis.com/css2?family=${family}:wght@400;700&display=swap`;
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    }
+}
+
+// --- Функция обновления предпросмотра шрифтов ---
+function updateFontPreview() {
+    const header = headerFont.value.trim();
+    const body = bodyFont.value.trim();
+
+    if (header) {
+        loadGoogleFont(header);
+        previewHeader.style.fontFamily = `'${header}', 'Times New Roman', serif`;
+        previewHeader.textContent = `Заголовок (${header}): Пример заголовка`;
+    } else {
+        previewHeader.style.fontFamily = '';
+        previewHeader.textContent = 'Заголовок: Пример заголовка';
+    }
+
+    if (body) {
+        loadGoogleFont(body);
+        previewBody.style.fontFamily = `'${body}', Arial, sans-serif`;
+        previewBody.textContent = `Основной текст (${body}): Здесь будет пример текста, набранного основным шрифтом. Посмотрите, как он читается.`;
+    } else {
+        previewBody.style.fontFamily = '';
+        previewBody.textContent = 'Основной текст: Здесь будет пример текста, набранного основным шрифтом. Посмотрите, как он читается.';
+    }
+}
+
 // --- Генератор шрифтов ---
 generateFontBtn.addEventListener('click', () => {
     const pair = generateRandomFontPair();
     headerFont.value = pair.header;
     bodyFont.value = pair.body;
+    updateFontPreview();
     saveFormState();
 });
 
@@ -375,6 +417,8 @@ function loadFormState() {
         hasLogoCheckbox.checked = formData.hasLogo || false;
         extraWishes.value = formData.extraWishes || '';
 
+        updateFontPreview(); // обновить предпросмотр после загрузки
+
     } catch (e) {
         console.error('Ошибка загрузки из localStorage', e);
     }
@@ -517,6 +561,7 @@ function resetForm() {
         toneOther.style.display = 'none';
         selectedBlocks = [];
         renderSortableList();
+        updateFontPreview(); // сбросить предпросмотр
         localStorage.removeItem(STORAGE_KEY);
         resultDiv.style.display = 'none';
         saveFormState();
@@ -530,6 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupColorSync();
     setupStyleSync();
 
+    // События для блоков
     blocksCheckboxes.forEach(cb => {
         cb.addEventListener('change', () => {
             updateBlocksList();
@@ -537,12 +583,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Сохранение при изменениях
+    // Сохранение при изменениях в анимациях
     [hoverButtons, hoverCards, hoverImages].forEach(group => {
         group.forEach(cb => cb.addEventListener('change', saveFormState));
     });
     snapScrollingCheckbox.addEventListener('change', saveFormState);
-    
+
+    // События для предпросмотра шрифтов
+    headerFont.addEventListener('input', updateFontPreview);
+    bodyFont.addEventListener('input', updateFontPreview);
+
+    // Сохранение при любых изменениях в форме
     form.addEventListener('input', saveFormState);
     form.addEventListener('change', saveFormState);
 
