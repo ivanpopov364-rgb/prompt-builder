@@ -50,22 +50,35 @@ function generateRandomFontPair() {
     // Для заголовков берём шрифты с style 'display' или любые
     let headerCandidates = fontDatabase.filter(f => f.style === 'display' || f.category === 'display');
     if (headerCandidates.length === 0) headerCandidates = fontDatabase;
-    
-    // Для текста берём шрифты с style 'text'
+
+    // Для текста берём шрифты с style 'text' или serif/sans-serif
     let bodyCandidates = fontDatabase.filter(f => f.style === 'text');
     if (bodyCandidates.length === 0) bodyCandidates = fontDatabase;
 
     let header = headerCandidates[Math.floor(Math.random() * headerCandidates.length)];
     let body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
-    
+
     // Избегаем одинаковых
     let attempts = 0;
     while (header.name === body.name && attempts < 10) {
         body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
         attempts++;
     }
-    
+
     return { header: header.name, body: body.name };
+}
+
+// --- Функция для загрузки шрифта через Google Fonts ---
+function loadGoogleFont(fontName) {
+    if (!fontName || fontName.trim() === '') return;
+    const family = fontName.trim().replace(/ /g, '+');
+    const existingLink = document.querySelector(`link[href*="${family}"]`);
+    if (!existingLink) {
+        const link = document.createElement('link');
+        link.href = `https://fonts.googleapis.com/css2?family=${family}:wght@400;700&display=swap`;
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    }
 }
 
 // --- Элементы формы ---
@@ -108,15 +121,15 @@ const headerFont = document.getElementById('headerFont');
 const bodyFont = document.getElementById('bodyFont');
 const generateFontBtn = document.getElementById('generateFontPair');
 
-// --- Элементы предпросмотра шрифтов ---
+// Элементы предпросмотра шрифтов
 const previewHeader = document.querySelector('.preview-header');
 const previewBody = document.querySelector('.preview-body');
 
-// --- Структура ---
+// --- Структура (Header и Footer фиксированы) ---
 const blocksCheckboxes = document.querySelectorAll('input[name="blocks"]');
 const blocksSortable = document.getElementById('blocks-sortable');
 let sortableInstance = null;
-let selectedBlocks = [];
+let selectedBlocks = []; // только блоки, выбранные пользователем (без Header/Footer)
 
 // --- Анимации ---
 const hoverButtons = document.querySelectorAll('input[name="hoverButtons"]');
@@ -212,19 +225,6 @@ function setupStyleSync() {
     });
 }
 
-// --- Функция для загрузки шрифта через Google Fonts ---
-function loadGoogleFont(fontName) {
-    if (!fontName || fontName.trim() === '') return;
-    const family = fontName.trim().replace(/ /g, '+');
-    const existingLink = document.querySelector(`link[href*="${family}"]`);
-    if (!existingLink) {
-        const link = document.createElement('link');
-        link.href = `https://fonts.googleapis.com/css2?family=${family}:wght@400;700&display=swap`;
-        link.rel = 'stylesheet';
-        document.head.appendChild(link);
-    }
-}
-
 // --- Функция обновления предпросмотра шрифтов ---
 function updateFontPreview() {
     const header = headerFont.value.trim();
@@ -264,33 +264,62 @@ function updateBlocksList() {
     blocksCheckboxes.forEach(cb => {
         if (cb.checked) checked.push(cb.value);
     });
-    
-    const existingItems = Array.from(blocksSortable.children).map(li => li.textContent);
-    const newOrder = selectedBlocks.filter(block => checked.includes(block));
+
+    // Оставляем только те, которые были в selectedBlocks и остались выбранными
+    const newSelected = selectedBlocks.filter(block => checked.includes(block));
+    // Добавляем новые выбранные блоки (которых ещё нет)
     checked.forEach(block => {
-        if (!newOrder.includes(block)) newOrder.push(block);
+        if (!newSelected.includes(block)) newSelected.push(block);
     });
-    
-    selectedBlocks = newOrder;
+
+    selectedBlocks = newSelected;
     renderSortableList();
 }
 
+// Отрисовка списка с фиксированными Header и Footer
 function renderSortableList() {
     blocksSortable.innerHTML = '';
+
+    // Фиксированный Header
+    const headerLi = document.createElement('li');
+    headerLi.textContent = 'Header/Навигация';
+    headerLi.classList.add('fixed-item');
+    headerLi.style.backgroundColor = '#e0e0e0';
+    headerLi.style.cursor = 'default';
+    blocksSortable.appendChild(headerLi);
+
+    // Перемещаемые блоки (выбранные пользователем)
     selectedBlocks.forEach(block => {
         const li = document.createElement('li');
         li.textContent = block;
         blocksSortable.appendChild(li);
     });
+
+    // Фиксированный Footer
+    const footerLi = document.createElement('li');
+    footerLi.textContent = 'Футер (подвал)';
+    footerLi.classList.add('fixed-item');
+    footerLi.style.backgroundColor = '#e0e0e0';
+    footerLi.style.cursor = 'default';
+    blocksSortable.appendChild(footerLi);
 }
 
+// Инициализация Sortable с фильтром для фиксированных элементов
 function initSortable() {
     if (sortableInstance) sortableInstance.destroy();
     sortableInstance = new Sortable(blocksSortable, {
         animation: 150,
         ghostClass: 'sortable-ghost',
-        onEnd: function() {
-            selectedBlocks = Array.from(blocksSortable.children).map(li => li.textContent);
+        filter: '.fixed-item', // элементы с этим классом не перетаскиваются
+        preventOnFilter: false, // чтобы клик по ним не активировал перетаскивание
+        onEnd: function(evt) {
+            // Обновить selectedBlocks в соответствии с новым порядком (исключая fixed элементы)
+            const items = Array.from(blocksSortable.children);
+            // Отфильтровываем фиксированные элементы (header и footer)
+            const newOrder = items
+                .filter(li => !li.classList.contains('fixed-item'))
+                .map(li => li.textContent);
+            selectedBlocks = newOrder;
             saveFormState();
         }
     });
@@ -327,7 +356,7 @@ function saveFormState() {
         colorAccentIgnore: colorAccentIgnore.checked,
         headerFont: headerFont.value,
         bodyFont: bodyFont.value,
-        selectedBlocks: selectedBlocks,
+        selectedBlocks: selectedBlocks, // только выбранные блоки (без header/footer)
         hoverButtons: hoverButtonsSelected,
         hoverCards: hoverCardsSelected,
         hoverImages: hoverImagesSelected,
@@ -393,11 +422,13 @@ function loadFormState() {
 
         if (Array.isArray(formData.selectedBlocks)) {
             selectedBlocks = formData.selectedBlocks;
+            // Отметить чекбоксы
             blocksCheckboxes.forEach(cb => {
                 cb.checked = selectedBlocks.includes(cb.value);
             });
         } else {
             selectedBlocks = [];
+            blocksCheckboxes.forEach(cb => cb.checked = false);
         }
         renderSortableList();
 
@@ -417,7 +448,8 @@ function loadFormState() {
         hasLogoCheckbox.checked = formData.hasLogo || false;
         extraWishes.value = formData.extraWishes || '';
 
-        updateFontPreview(); // обновить предпросмотр после загрузки
+        // Обновляем предпросмотр шрифтов
+        updateFontPreview();
 
     } catch (e) {
         console.error('Ошибка загрузки из localStorage', e);
@@ -439,11 +471,11 @@ function generatePrompt() {
     prompt += `## 1. КОНТЕКСТ И ЦЕЛИ\n`;
     prompt += `Тип сайта: ${siteType}\n`;
     if (targetAudience.value.trim()) prompt += `Целевая аудитория: ${targetAudience.value.trim()}\n`;
-    
+
     const goals = [];
     siteGoals.forEach(cb => { if (cb.checked) goals.push(cb.value); });
     if (goals.length > 0) prompt += `Главная цель сайта: ${goals.join(', ')}\n`;
-    
+
     let tone = toneSelect.value;
     if (tone === 'other' && toneOther.value.trim()) tone = toneOther.value.trim();
     if (tone && tone !== 'other') prompt += `Тон коммуникации: ${tone}\n`;
@@ -468,15 +500,18 @@ function generatePrompt() {
     if (bodyFont.value.trim()) prompt += `Шрифт основного текста: ${bodyFont.value.trim()}\n`;
     prompt += '\n';
 
-    // 5. СТРУКТУРА И СЕКЦИИ
+    // 5. СТРУКТУРА И СЕКЦИИ (ПО ПОРЯДКУ)
     prompt += `## 5. СТРУКТУРА И СЕКЦИИ (ПО ПОРЯДКУ)\n`;
+    // Всегда начинаем с Header
+    prompt += `1. Header/Навигация\n`;
+    // Затем выбранные блоки
     if (selectedBlocks.length > 0) {
         selectedBlocks.forEach((block, index) => {
-            prompt += `${index+1}. ${block}\n`;
+            prompt += `${index+2}. ${block}\n`;
         });
-    } else {
-        prompt += `Блоки не выбраны.\n`;
     }
+    // Завершаем Footer
+    prompt += `${selectedBlocks.length + 2}. Футер (подвал)\n`;
     prompt += '\n';
 
     // 6. ИНТЕРАКТИВНОСТЬ И АНИМАЦИИ
@@ -561,10 +596,11 @@ function resetForm() {
         toneOther.style.display = 'none';
         selectedBlocks = [];
         renderSortableList();
-        updateFontPreview(); // сбросить предпросмотр
         localStorage.removeItem(STORAGE_KEY);
         resultDiv.style.display = 'none';
         saveFormState();
+        // Сброс предпросмотра шрифтов
+        updateFontPreview();
     }
 }
 
@@ -575,7 +611,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setupColorSync();
     setupStyleSync();
 
-    // События для блоков
+    // Обновление предпросмотра при ручном вводе шрифтов
+    headerFont.addEventListener('input', updateFontPreview);
+    bodyFont.addEventListener('input', updateFontPreview);
+
     blocksCheckboxes.forEach(cb => {
         cb.addEventListener('change', () => {
             updateBlocksList();
@@ -583,21 +622,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Сохранение при изменениях в анимациях
+    // Сохранение при изменениях
     [hoverButtons, hoverCards, hoverImages].forEach(group => {
         group.forEach(cb => cb.addEventListener('change', saveFormState));
     });
     snapScrollingCheckbox.addEventListener('change', saveFormState);
 
-    // События для предпросмотра шрифтов
-    headerFont.addEventListener('input', updateFontPreview);
-    bodyFont.addEventListener('input', updateFontPreview);
-
-    // Сохранение при любых изменениях в форме
     form.addEventListener('input', saveFormState);
     form.addEventListener('change', saveFormState);
 
     generateBtn.addEventListener('click', generatePrompt);
     copyBtn.addEventListener('click', copyToClipboard);
     addResetButton();
+
+    // Гарантируем, что предпросмотр обновится после загрузки (если есть значения)
+    updateFontPreview();
 });

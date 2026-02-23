@@ -141,7 +141,7 @@
                     </div>
                 </fieldset>
 
-                <!-- Типографика с генератором -->
+                <!-- Типографика с генератором и предпросмотром -->
                 <fieldset>
                     <legend>🔤 Типографика</legend>
                     <div class="form-group">
@@ -152,12 +152,12 @@
                         <label for="bodyFont">Шрифт основного текста:</label>
                         <input type="text" id="bodyFont" name="bodyFont" placeholder="Например: Roboto">
                     </div>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <button type="button" id="generateFontPair" style="background-color: #9b59b6;">🎲 Сгенерировать пару</button>
                         <span class="note">также пару можно подобрать на <a href="https://fontjoy.com" target="_blank">FontJoy</a> и вписать названия в поля выше</span>
                     </div>
-                </fieldset>
-                 <!-- Блок предпросмотра шрифтов -->
+
+                    <!-- Блок предпросмотра шрифтов -->
                     <div class="font-preview-container" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
                         <h4 style="margin-top: 0;">Предпросмотр:</h4>
                         <div class="preview-header" style="font-size: 28px; margin-bottom: 15px; font-weight: bold;">
@@ -166,16 +166,17 @@
                         <div class="preview-body" style="font-size: 18px; line-height: 1.5;">
                             Основной текст: Здесь будет пример текста, набранного основным шрифтом. Посмотрите, как он читается.
                         </div>
-                         <p class="note">Шрифты подгружаются из Google Fonts, если доступны.</p>
+                        <p class="note">Шрифты подгружаются из Google Fonts, если доступны.</p>
                     </div>
+                </fieldset>
             </div>
 
             <!-- Вкладка 3: Структура -->
             <div id="tab3" class="tab-content">
                 <fieldset>
-                    <legend>Выберите блоки для главной страницы</legend>
+                    <legend>Выберите блоки для главной страницы (Header и Footer фиксированы)</legend>
                     <div class="checkbox-group" id="blocks-checkbox-group">
-                        <label><input type="checkbox" name="blocks" value="Header/Навигация"> Header/Навигация</label>
+                        <!-- Header и Footer убраны из выбора, они будут добавлены автоматически -->
                         <label><input type="checkbox" name="blocks" value="Hero (первый экран)"> Hero (первый экран)</label>
                         <label><input type="checkbox" name="blocks" value="Преимущества / услуги"> Преимущества / услуги</label>
                         <label><input type="checkbox" name="blocks" value="Портфолио / работы"> Портфолио / работы</label>
@@ -184,16 +185,16 @@
                         <label><input type="checkbox" name="blocks" value="Стоимость / тарифы"> Стоимость / тарифы</label>
                         <label><input type="checkbox" name="blocks" value="FAQ / вопросы"> FAQ / вопросы</label>
                         <label><input type="checkbox" name="blocks" value="Контакты и форма"> Контакты и форма</label>
-                        <label><input type="checkbox" name="blocks" value="Футер (подвал)"> Футер (подвал)</label>
                     </div>
+                    <p class="note">Блоки Header и Footer будут автоматически добавлены в начало и конец структуры.</p>
                 </fieldset>
 
                 <fieldset>
                     <legend>Порядок блоков (перетащите для изменения)</legend>
                     <ul id="blocks-sortable" class="sortable-list">
-                        <!-- Сюда будут добавляться выбранные блоки через JS -->
+                        <!-- Сюда будут добавляться блоки через JS -->
                     </ul>
-                    <p class="note">Выберите блоки выше, затем перетаскивайте их в нужном порядке.</p>
+                    <p class="note">Выберите блоки выше, затем перетаскивайте их в нужном порядке. Header и Footer зафиксированы.</p>
                 </fieldset>
             </div>
 
