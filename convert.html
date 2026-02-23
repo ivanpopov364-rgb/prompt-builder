@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Конвертер данных FontJoy</title>
+</head>
+<body>
+    <h1>Конвертер данных FontJoy</h1>
+    <p>Выберите скачанные файлы из репозитория FontJoy:</p>
+    <input type="file" id="metadataFile" accept=".tsv,.txt" />
+    <input type="file" id="vectorsFile" accept=".json" />
+    <button id="convertBtn">Конвертировать</button>
+    <pre id="output"></pre>
+
+    <script>
+        document.getElementById('convertBtn').addEventListener('click', async () => {
+            const metadataFile = document.getElementById('metadataFile').files[0];
+            const vectorsFile = document.getElementById('vectorsFile').files[0];
+            if (!metadataFile || !vectorsFile) {
+                alert('Выберите оба файла');
+                return;
+            }
+
+            // Читаем metadata.tsv
+            const metadataText = await metadataFile.text();
+            const metadataLines = metadataText.trim().split('\n');
+            const headers = metadataLines[0].split('\t');
+            const metadata = [];
+            for (let i = 1; i < metadataLines.length; i++) {
+                const values = metadataLines[i].split('\t');
+                const entry = {};
+                headers.forEach((h, idx) => {
+                    entry[h.trim()] = values[idx]?.trim() || '';
+                });
+                metadata.push(entry);
+            }
+
+            // Читаем векторы
+            const vectorsText = await vectorsFile.text();
+            const vectors = JSON.parse(vectorsText);
+
+            // Создаём итоговый массив
+            const fonts = metadata.map((item, idx) => {
+                const vector = vectors[idx] || [];
+                return {
+                    name: item.name || `Font ${idx}`,
+                    category: item.category || 'sans-serif',
+                    vector: vector
+                };
+            });
+
+            // Формируем содержимое для fonts-data.js
+            const output = `// Автоматически сгенерированный файл с данными шрифтов FontJoy
+window.fontData = ${JSON.stringify(fonts, null, 2)};`;
+
+            // Создаём ссылку для скачивания
+            const blob = new Blob([output], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'fonts-data.js';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            document.getElementById('output').textContent = 'Файл fonts-data.js успешно создан!';
+        });
+    </script>
+</body>
+</html>
