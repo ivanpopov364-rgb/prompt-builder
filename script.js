@@ -17,6 +17,34 @@ const footer_requirements = `Footer/подвал:
 
 const STORAGE_KEY = 'lovablePromptBuilder';
 
+// --- Встроенная база популярных шрифтов Google Fonts с категориями ---
+const fontDatabase = [
+    // С засечками (serif)
+    { name: 'Merriweather', category: 'serif', style: 'text' },
+    { name: 'Playfair Display', category: 'serif', style: 'display' },
+    { name: 'PT Serif', category: 'serif', style: 'text' },
+    { name: 'Lora', category: 'serif', style: 'text' },
+    { name: 'Cormorant Garamond', category: 'serif', style: 'display' },
+    { name: 'Roboto Slab', category: 'serif', style: 'text' },
+    // Без засечек (sans-serif)
+    { name: 'Roboto', category: 'sans-serif', style: 'text' },
+    { name: 'Open Sans', category: 'sans-serif', style: 'text' },
+    { name: 'Montserrat', category: 'sans-serif', style: 'display' },
+    { name: 'Lato', category: 'sans-serif', style: 'text' },
+    { name: 'Poppins', category: 'sans-serif', style: 'display' },
+    { name: 'Oswald', category: 'sans-serif', style: 'display' },
+    { name: 'Raleway', category: 'sans-serif', style: 'display' },
+    { name: 'Inter', category: 'sans-serif', style: 'text' },
+    { name: 'Source Sans Pro', category: 'sans-serif', style: 'text' },
+    // Акцидентные (display) и рукописные
+    { name: 'Lobster', category: 'display', style: 'display' },
+    { name: 'Abril Fatface', category: 'display', style: 'display' },
+    { name: 'Bebas Neue', category: 'display', style: 'display' },
+    { name: 'Pacifico', category: 'handwriting', style: 'display' },
+    { name: 'Dancing Script', category: 'handwriting', style: 'display' },
+    { name: 'Comfortaa', category: 'display', style: 'display' }
+];
+
 // --- Элементы формы ---
 const form = document.getElementById('promptForm');
 const generateBtn = document.getElementById('generateBtn');
@@ -53,7 +81,7 @@ const snapScrollingCheckbox = document.getElementById('snapScrolling');
 const styleInput = document.getElementById('style');
 const stylePreset = document.getElementById('stylePreset');
 
-// --- Элементы типографики (FontJoy) ---
+// --- Элементы типографики ---
 const headerFontSelect = document.getElementById('headerFontStyle');
 const bodyFontSelect = document.getElementById('bodyFontStyle');
 let selectedFontPair = { header: '...', body: '...' };
@@ -63,85 +91,46 @@ const previewHeader = document.querySelector('.preview-header');
 const previewBody = document.querySelector('.preview-body');
 const regenerateBtn = document.getElementById('regenerateFonts');
 
-// --- Данные шрифтов (загружаются из fonts-data.js) ---
-let fontData = [];
-let isFontDataLoaded = false;
-
-// Загрузка данных шрифтов
-function loadFontData() {
-    if (typeof window.fontData !== 'undefined' && Array.isArray(window.fontData) && window.fontData.length > 0) {
-        fontData = window.fontData;
-        isFontDataLoaded = true;
-        console.log(`✅ Загружено ${fontData.length} шрифтов`);
-
-        // Если уже есть выбранная пара (например, из localStorage), обновим предпросмотр
-        if (selectedFontPair.header !== '...' && selectedFontPair.body !== '...') {
-            updateFontPreview(selectedFontPair);
-        } else {
-            // Иначе сгенерируем новую пару
-            updateFontPair();
-        }
-    } else {
-        console.error('❌ Данные шрифтов не найдены. Убедитесь, что fonts-data.js подключен.');
-        // Заглушка на случай отсутствия (чтобы не было ошибок)
-        fontData = [
-            { name: 'Roboto', category: 'sans-serif', vector: [] },
-            { name: 'Merriweather', category: 'serif', vector: [] }
-        ];
-        isFontDataLoaded = true;
-        updateFontPair();
-    }
-}
-
-// --- Функция подбора пары шрифтов на основе векторов ---
+// --- Функция подбора пары шрифтов (без векторов) ---
 function findFontPair(headerPref, bodyPref) {
-    if (!isFontDataLoaded || fontData.length === 0) {
-        return { header: 'Roboto', body: 'Merriweather' };
-    }
-
-    // Фильтрация кандидатов для заголовков
-    let headerCandidates = fontData.filter(f => {
-        const cat = (f.category || '').toLowerCase();
-        if (headerPref === 'serif' && (cat.includes('serif') || cat.includes('display'))) return true;
-        if (headerPref === 'sans-serif' && (cat.includes('sans') || cat.includes('display'))) return true;
-        if (headerPref === 'display' && cat.includes('display')) return true;
-        if (headerPref === 'handwriting' && (cat.includes('hand') || cat.includes('script'))) return true;
-        return headerPref === 'any';
+    // Фильтруем кандидатов для заголовков
+    let headerCandidates = fontDatabase.filter(f => {
+        if (headerPref === 'serif' && f.category === 'serif' && f.style === 'display') return true;
+        if (headerPref === 'sans-serif' && f.category === 'sans-serif' && f.style === 'display') return true;
+        if (headerPref === 'display' && f.category === 'display') return true;
+        if (headerPref === 'handwriting' && f.category === 'handwriting') return true;
+        if (headerPref === 'any' && (f.style === 'display' || f.category === 'display')) return true;
+        return false;
     });
-    if (headerCandidates.length === 0) headerCandidates = fontData;
-
-    // Фильтрация для текста
-    let bodyCandidates = fontData.filter(f => {
-        const cat = (f.category || '').toLowerCase();
-        if (bodyPref === 'serif' && cat.includes('serif')) return true;
-        if (bodyPref === 'sans-serif' && cat.includes('sans')) return true;
-        return bodyPref === 'any';
-    });
-    if (bodyCandidates.length === 0) bodyCandidates = fontData;
-
-    // Поиск лучшей пары по метрике split cosine
-    let bestPair = { header: headerCandidates[0].name, body: bodyCandidates[0].name };
-    let bestScore = -Infinity;
-    const maxAttempts = 500;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const h = headerCandidates[Math.floor(Math.random() * headerCandidates.length)];
-        const b = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
-        if (!h.vector || !b.vector || h.vector.length === 0 || b.vector.length === 0) continue;
-
-        let posSum = 0, negSum = 0;
-        for (let i = 0; i < h.vector.length; i++) {
-            const diff = h.vector[i] - b.vector[i];
-            if (diff > 0) posSum += diff;
-            else negSum -= diff;
-        }
-        const score = posSum * negSum;
-        if (score > bestScore) {
-            bestScore = score;
-            bestPair = { header: h.name, body: b.name };
-        }
+    if (headerCandidates.length === 0) {
+        // Запасной вариант: все, у которых style display
+        headerCandidates = fontDatabase.filter(f => f.style === 'display');
     }
-    return bestPair;
+    if (headerCandidates.length === 0) headerCandidates = fontDatabase;
+
+    // Фильтруем кандидатов для основного текста
+    let bodyCandidates = fontDatabase.filter(f => {
+        if (bodyPref === 'serif' && f.category === 'serif' && f.style === 'text') return true;
+        if (bodyPref === 'sans-serif' && f.category === 'sans-serif' && f.style === 'text') return true;
+        if (bodyPref === 'any' && f.style === 'text') return true;
+        return false;
+    });
+    if (bodyCandidates.length === 0) {
+        bodyCandidates = fontDatabase.filter(f => f.style === 'text');
+    }
+    if (bodyCandidates.length === 0) bodyCandidates = fontDatabase;
+
+    // Выбираем случайные, но чтобы не совпадали
+    let header = headerCandidates[Math.floor(Math.random() * headerCandidates.length)];
+    let body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
+    
+    let attempts = 0;
+    while (header.name === body.name && attempts < 10) {
+        body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
+        attempts++;
+    }
+    
+    return { header: header.name, body: body.name };
 }
 
 // --- Функция для загрузки шрифта через Google Fonts ---
@@ -175,7 +164,6 @@ function updateFontPreview(pair) {
 
 // Обновление выбранной пары и сохранение
 function updateFontPair() {
-    if (!isFontDataLoaded) return;
     selectedFontPair = findFontPair(headerFontSelect.value, bodyFontSelect.value);
     updateFontPreview(selectedFontPair);
     saveFormState();
@@ -213,7 +201,6 @@ function saveFormState() {
         suggestedBodyFont: selectedFontPair.body
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-    console.log('💾 Сохранено в localStorage');
 }
 
 // --- Загрузка состояния из localStorage ---
@@ -224,7 +211,6 @@ function loadFormState() {
     try {
         const formData = JSON.parse(saved);
 
-        // Тип сайта
         if (formData.siteType) {
             const radio = document.querySelector(`input[name="siteType"][value="${formData.siteType}"]`);
             if (radio) radio.checked = true;
@@ -234,7 +220,6 @@ function loadFormState() {
         if (styleInput) styleInput.value = formData.style || '';
         if (stylePreset && formData.stylePreset) stylePreset.value = formData.stylePreset;
 
-        // Блоки
         if (Array.isArray(formData.blocks)) {
             document.querySelectorAll('input[name="blocks"]').forEach(cb => {
                 cb.checked = formData.blocks.includes(cb.value);
@@ -243,14 +228,12 @@ function loadFormState() {
 
         if (snapScrollingCheckbox) snapScrollingCheckbox.checked = formData.snapScrolling || false;
 
-        // Поля формы
         if (Array.isArray(formData.feedbackFields)) {
             document.querySelectorAll('input[name="feedbackFields"]').forEach(cb => {
                 cb.checked = formData.feedbackFields.includes(cb.value);
             });
         }
 
-        // Цвета
         if (formData.colorPrimary) {
             colorPrimary.value = formData.colorPrimary;
             colorPrimaryHex.value = formData.colorPrimary;
@@ -273,24 +256,20 @@ function loadFormState() {
         companyDescTextarea.value = formData.companyDesc || '';
         if (hasLogoCheckbox) hasLogoCheckbox.checked = formData.hasLogo || false;
 
-        // Шрифты: устанавливаем значения селектов
         if (headerFontSelect && formData.headerFontPref) headerFontSelect.value = formData.headerFontPref;
         if (bodyFontSelect && formData.bodyFontPref) bodyFontSelect.value = formData.bodyFontPref;
 
-        // Восстанавливаем сохранённую пару
         if (formData.suggestedHeaderFont && formData.suggestedBodyFont) {
             selectedFontPair = {
                 header: formData.suggestedHeaderFont,
                 body: formData.suggestedBodyFont
             };
-            // Если данные шрифтов уже загружены, сразу обновим предпросмотр
-            if (isFontDataLoaded) {
-                updateFontPreview(selectedFontPair);
-            }
+            updateFontPreview(selectedFontPair);
+        } else {
+            updateFontPair();
         }
 
         toggleFeedbackFields();
-        console.log('↩️ Загружено из localStorage');
     } catch (e) {
         console.error('Ошибка загрузки из localStorage', e);
     }
@@ -386,7 +365,6 @@ function generatePrompt() {
 
     const snapScrolling = snapScrollingCheckbox.checked ? 'Да' : 'Нет';
 
-    // Поля формы обратной связи
     let feedbackFieldsText = '';
     if (blocks.includes('Форма обратной связи')) {
         const feedbackFields = [];
@@ -398,7 +376,6 @@ function generatePrompt() {
         }
     }
 
-    // Цвета
     let colorsText = '';
     if (!colorPrimaryIgnore.checked || !colorSecondaryIgnore.checked || !colorAccentIgnore.checked) {
         colorsText = 'Цветовая схема:\n';
@@ -409,7 +386,6 @@ function generatePrompt() {
         colorsText = 'Цветовые предпочтения не заданы (разработчик может выбрать сам).\n';
     }
 
-    // Материалы
     let materialsText = '';
     if (servicesTextarea.value.trim() || companyDescTextarea.value.trim()) {
         materialsText = 'Материалы заказчика:\n';
@@ -421,22 +397,19 @@ function generatePrompt() {
         }
     }
 
-    // Логотип
     const logoText = hasLogoCheckbox.checked
         ? 'Есть логотип. Проанализируй прикрепленный логотип, выдели дизайн систему и используй ее для сайта.'
         : 'Логотип не предоставлен.';
 
-    // Шрифты – если пара ещё не выбрана, генерируем
-    if (selectedFontPair.header === '...' && isFontDataLoaded) {
+    if (selectedFontPair.header === '...') {
         updateFontPair();
     }
 
     const fontsText = `Рекомендуемая пара шрифтов (на основе FontJoy):
 - Для заголовков: ${selectedFontPair.header}
 - Для основного текста: ${selectedFontPair.body}
-(Подобрано с использованием реальных векторных данных из FontJoy.)`;
+(Подобрано с использованием популярных пар Google Fonts.)`;
 
-    // Сборка промпта
     let prompt = `Создай сайт для lovable.dev.\n\n`;
     prompt += `Тип сайта: ${siteType}.\n`;
     prompt += `Тематика: ${theme}.\n`;
@@ -492,7 +465,6 @@ function resetForm() {
         const defaultRadio = document.querySelector('input[name="siteType"][value="Лендинг"]');
         if (defaultRadio) defaultRadio.checked = true;
 
-        // Сброс цветов
         colorPrimary.value = '#3498db';
         colorPrimaryHex.value = '#3498db';
         if (colorPrimaryIgnore) colorPrimaryIgnore.checked = false;
@@ -507,10 +479,9 @@ function resetForm() {
         if (snapScrollingCheckbox) snapScrollingCheckbox.checked = false;
         if (stylePreset) stylePreset.value = '';
 
-        // Сброс шрифтов
         if (headerFontSelect) headerFontSelect.value = 'any';
         if (bodyFontSelect) bodyFontSelect.value = 'any';
-        if (isFontDataLoaded) updateFontPair();
+        updateFontPair();
 
         localStorage.removeItem(STORAGE_KEY);
         resultDiv.style.display = 'none';
@@ -522,13 +493,7 @@ function resetForm() {
 
 // --- Инициализация ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Сначала пытаемся загрузить данные шрифтов
-    loadFontData();
-
-    // Затем загружаем состояние формы
     loadFormState();
-
-    // Настраиваем остальное
     toggleFeedbackFields();
     setupColorSync();
     setupStyleSync();
@@ -539,12 +504,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (regenerateBtn) {
-        regenerateBtn.addEventListener('click', () => {
-            updateFontPair();
-        });
+        regenerateBtn.addEventListener('click', updateFontPair);
     }
 
-    // Сохраняем при любых изменениях
     form.addEventListener('input', saveFormState);
     form.addEventListener('change', saveFormState);
 
