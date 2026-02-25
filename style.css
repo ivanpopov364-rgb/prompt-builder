@@ -272,6 +272,16 @@ textarea#promptOutput {
 .sortable-list li.fixed-item:hover {
     background-color: #e0e0e0 !important;
 }
+/* Стили для кнопок удаления в списке блоков */
+.sortable-list li span {
+    font-size: 20px;
+    line-height: 1;
+    user-select: none;
+}
+
+.sortable-list li span:hover {
+    color: darkred;
+}
 
 .preview-header, .preview-body {
     transition: font-family 0.2s ease;
