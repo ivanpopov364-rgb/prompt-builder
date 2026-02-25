@@ -47,18 +47,15 @@ const fontDatabase = [
 
 // --- Функция генерации случайной пары шрифтов ---
 function generateRandomFontPair() {
-    // Для заголовков берём шрифты с style 'display' или любые
     let headerCandidates = fontDatabase.filter(f => f.style === 'display' || f.category === 'display');
     if (headerCandidates.length === 0) headerCandidates = fontDatabase;
 
-    // Для текста берём шрифты с style 'text' или serif/sans-serif
     let bodyCandidates = fontDatabase.filter(f => f.style === 'text');
     if (bodyCandidates.length === 0) bodyCandidates = fontDatabase;
 
     let header = headerCandidates[Math.floor(Math.random() * headerCandidates.length)];
     let body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
 
-    // Избегаем одинаковых
     let attempts = 0;
     while (header.name === body.name && attempts < 10) {
         body = bodyCandidates[Math.floor(Math.random() * bodyCandidates.length)];
@@ -128,6 +125,8 @@ const previewBody = document.querySelector('.preview-body');
 // --- Структура (Header и Footer фиксированы) ---
 const blocksCheckboxes = document.querySelectorAll('input[name="blocks"]');
 const blocksSortable = document.getElementById('blocks-sortable');
+const customBlockInput = document.getElementById('customBlockName');
+const addCustomBlockBtn = document.getElementById('addCustomBlock');
 let sortableInstance = null;
 let selectedBlocks = []; // только блоки, выбранные пользователем (без Header/Footer)
 
@@ -135,7 +134,7 @@ let selectedBlocks = []; // только блоки, выбранные поль
 const hoverButtons = document.querySelectorAll('input[name="hoverButtons"]');
 const hoverCards = document.querySelectorAll('input[name="hoverCards"]');
 const hoverImages = document.querySelectorAll('input[name="hoverImages"]');
-const snapScrollingCheckbox = document.getElementById('snapScrolling');
+const scrollTypeRadios = document.querySelectorAll('input[name="scrollType"]');
 
 // --- Дополнительно ---
 const servicesTextarea = document.getElementById('services');
@@ -265,18 +264,35 @@ function updateBlocksList() {
         if (cb.checked) checked.push(cb.value);
     });
 
-    // Оставляем только те, которые были в selectedBlocks и остались выбранными
-    const newSelected = selectedBlocks.filter(block => checked.includes(block));
-    // Добавляем новые выбранные блоки (которых ещё нет)
+    // Оставляем только те, которые были в selectedBlocks и остались выбранными (стандартные)
+    // Кастомные блоки не удаляем автоматически, они остаются
+    // Но если кастомный блок совпадает с названием стандартного? Не должно.
+    // Чтобы удалить кастомный блок, нужно нажать крестик.
+    // При изменении чекбоксов мы не трогаем кастомные блоки, они остаются.
+    // Однако если пользователь добавил кастомный блок, а потом решил убрать, он может удалить через крестик.
+    // Поэтому здесь мы только обновляем selectedBlocks, добавляя новые стандартные блоки.
+    const newSelected = [...selectedBlocks]; // копируем текущие (включая кастомные)
+    
+    // Добавляем новые стандартные блоки, которых ещё нет
     checked.forEach(block => {
         if (!newSelected.includes(block)) newSelected.push(block);
     });
 
-    selectedBlocks = newSelected;
+    // Удаляем стандартные блоки, которые были сняты
+    // То есть оставляем только те, которые либо кастомные (не в списке стандартных), либо отмечены
+    const standardBlocks = Array.from(blocksCheckboxes).map(cb => cb.value);
+    const filtered = newSelected.filter(block => {
+        if (standardBlocks.includes(block)) {
+            return checked.includes(block);
+        }
+        return true; // кастомные оставляем
+    });
+
+    selectedBlocks = filtered;
     renderSortableList();
 }
 
-// Отрисовка списка с фиксированными Header и Footer
+// Отрисовка списка с фиксированными Header и Footer и кнопками удаления
 function renderSortableList() {
     blocksSortable.innerHTML = '';
 
@@ -288,10 +304,32 @@ function renderSortableList() {
     headerLi.style.cursor = 'default';
     blocksSortable.appendChild(headerLi);
 
-    // Перемещаемые блоки (выбранные пользователем)
-    selectedBlocks.forEach(block => {
+    // Перемещаемые блоки (выбранные пользователем) с кнопкой удаления
+    selectedBlocks.forEach((block, index) => {
         const li = document.createElement('li');
         li.textContent = block;
+
+        // Добавляем кнопку удаления, если блок не фиксированный
+        const removeSpan = document.createElement('span');
+        removeSpan.textContent = ' ×';
+        removeSpan.style.cssText = 'color: red; cursor: pointer; margin-left: 10px; font-weight: bold; float: right;';
+        removeSpan.title = 'Удалить блок';
+        removeSpan.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Удаляем блок из selectedBlocks
+            const blockToRemove = block;
+            selectedBlocks = selectedBlocks.filter(b => b !== blockToRemove);
+            // Если это стандартный блок, снимаем соответствующий чекбокс
+            blocksCheckboxes.forEach(cb => {
+                if (cb.value === blockToRemove) {
+                    cb.checked = false;
+                }
+            });
+            renderSortableList();
+            saveFormState();
+        });
+
+        li.appendChild(removeSpan);
         blocksSortable.appendChild(li);
     });
 
@@ -310,20 +348,30 @@ function initSortable() {
     sortableInstance = new Sortable(blocksSortable, {
         animation: 150,
         ghostClass: 'sortable-ghost',
-        filter: '.fixed-item', // элементы с этим классом не перетаскиваются
-        preventOnFilter: false, // чтобы клик по ним не активировал перетаскивание
+        filter: '.fixed-item',
+        preventOnFilter: false,
         onEnd: function(evt) {
             // Обновить selectedBlocks в соответствии с новым порядком (исключая fixed элементы)
             const items = Array.from(blocksSortable.children);
-            // Отфильтровываем фиксированные элементы (header и footer)
             const newOrder = items
                 .filter(li => !li.classList.contains('fixed-item'))
-                .map(li => li.textContent);
+                .map(li => li.textContent.replace(' ×', '')); // убираем маркер удаления
             selectedBlocks = newOrder;
             saveFormState();
         }
     });
 }
+
+// Добавление кастомного блока
+addCustomBlockBtn.addEventListener('click', () => {
+    const blockName = customBlockInput.value.trim();
+    if (blockName) {
+        selectedBlocks.push(blockName);
+        customBlockInput.value = '';
+        renderSortableList();
+        saveFormState();
+    }
+});
 
 // --- Сохранение состояния в localStorage ---
 function saveFormState() {
@@ -337,6 +385,8 @@ function saveFormState() {
     hoverCards.forEach(cb => { if (cb.checked) hoverCardsSelected.push(cb.value); });
     const hoverImagesSelected = [];
     hoverImages.forEach(cb => { if (cb.checked) hoverImagesSelected.push(cb.value); });
+
+    const scrollType = document.querySelector('input[name="scrollType"]:checked')?.value || 'normal';
 
     const formData = {
         siteType: siteType,
@@ -356,11 +406,11 @@ function saveFormState() {
         colorAccentIgnore: colorAccentIgnore.checked,
         headerFont: headerFont.value,
         bodyFont: bodyFont.value,
-        selectedBlocks: selectedBlocks, // только выбранные блоки (без header/footer)
+        selectedBlocks: selectedBlocks,
         hoverButtons: hoverButtonsSelected,
         hoverCards: hoverCardsSelected,
         hoverImages: hoverImagesSelected,
-        snapScrolling: snapScrollingCheckbox.checked,
+        scrollType: scrollType,
         services: servicesTextarea.value,
         companyDesc: companyDescTextarea.value,
         hasLogo: hasLogoCheckbox.checked,
@@ -422,7 +472,7 @@ function loadFormState() {
 
         if (Array.isArray(formData.selectedBlocks)) {
             selectedBlocks = formData.selectedBlocks;
-            // Отметить чекбоксы
+            // Отметить чекбоксы для стандартных блоков
             blocksCheckboxes.forEach(cb => {
                 cb.checked = selectedBlocks.includes(cb.value);
             });
@@ -442,13 +492,17 @@ function loadFormState() {
             cb.checked = formData.hoverImages?.includes(cb.value) || false;
         });
 
-        snapScrollingCheckbox.checked = formData.snapScrolling || false;
+        // Тип скролла
+        if (formData.scrollType) {
+            const radio = document.querySelector(`input[name="scrollType"][value="${formData.scrollType}"]`);
+            if (radio) radio.checked = true;
+        }
+
         servicesTextarea.value = formData.services || '';
         companyDescTextarea.value = formData.companyDesc || '';
         hasLogoCheckbox.checked = formData.hasLogo || false;
         extraWishes.value = formData.extraWishes || '';
 
-        // Обновляем предпросмотр шрифтов
         updateFontPreview();
 
     } catch (e) {
@@ -502,15 +556,12 @@ function generatePrompt() {
 
     // 5. СТРУКТУРА И СЕКЦИИ (ПО ПОРЯДКУ)
     prompt += `## 5. СТРУКТУРА И СЕКЦИИ (ПО ПОРЯДКУ)\n`;
-    // Всегда начинаем с Header
     prompt += `1. Header/Навигация\n`;
-    // Затем выбранные блоки
     if (selectedBlocks.length > 0) {
         selectedBlocks.forEach((block, index) => {
             prompt += `${index+2}. ${block}\n`;
         });
     }
-    // Завершаем Footer
     prompt += `${selectedBlocks.length + 2}. Футер (подвал)\n`;
     prompt += '\n';
 
@@ -535,7 +586,14 @@ function generatePrompt() {
         prompt += `Ховер-эффекты для изображений: ${hoverImagesSelected.join(', ')}\n`;
     }
 
-    if (snapScrollingCheckbox.checked) prompt += `Особенности верстки: snap scrolling\n`;
+    const scrollType = document.querySelector('input[name="scrollType"]:checked')?.value || 'normal';
+    if (scrollType === 'snap') {
+        prompt += `Тип верстки: snap scrolling (прокрутка по секциям)\n`;
+    } else if (scrollType === 'slider') {
+        prompt += `Тип верстки: слайдерный скролл (секции наезжают сверху)\n`;
+    } else {
+        prompt += `Тип верстки: обычный\n`;
+    }
     prompt += '\n';
 
     // 7. МОБИЛЬНАЯ ВЕРСИЯ
@@ -599,7 +657,6 @@ function resetForm() {
         localStorage.removeItem(STORAGE_KEY);
         resultDiv.style.display = 'none';
         saveFormState();
-        // Сброс предпросмотра шрифтов
         updateFontPreview();
     }
 }
@@ -611,7 +668,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupColorSync();
     setupStyleSync();
 
-    // Обновление предпросмотра при ручном вводе шрифтов
     headerFont.addEventListener('input', updateFontPreview);
     bodyFont.addEventListener('input', updateFontPreview);
 
@@ -622,11 +678,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Сохранение при изменениях
     [hoverButtons, hoverCards, hoverImages].forEach(group => {
         group.forEach(cb => cb.addEventListener('change', saveFormState));
     });
-    snapScrollingCheckbox.addEventListener('change', saveFormState);
+
+    scrollTypeRadios.forEach(radio => {
+        radio.addEventListener('change', saveFormState);
+    });
 
     form.addEventListener('input', saveFormState);
     form.addEventListener('change', saveFormState);
@@ -635,6 +693,5 @@ document.addEventListener('DOMContentLoaded', () => {
     copyBtn.addEventListener('click', copyToClipboard);
     addResetButton();
 
-    // Гарантируем, что предпросмотр обновится после загрузки (если есть значения)
     updateFontPreview();
 });
